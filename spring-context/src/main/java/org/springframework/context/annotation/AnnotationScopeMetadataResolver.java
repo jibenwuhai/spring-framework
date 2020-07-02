@@ -79,17 +79,21 @@ public class AnnotationScopeMetadataResolver implements ScopeMetadataResolver {
 		ScopeMetadata metadata = new ScopeMetadata();
 		if (definition instanceof AnnotatedBeanDefinition) {
 			AnnotatedBeanDefinition annDef = (AnnotatedBeanDefinition) definition;
+			//从注解bean定义类的属性中查找属性为scope的值
+			//annDef.getMetadata()方法将bean中所有的注解和注解值放一个map中
 			AnnotationAttributes attributes = AnnotationConfigUtils.attributesFor(
 					annDef.getMetadata(), this.scopeAnnotationType);
 			if (attributes != null) {
 				metadata.setScopeName(attributes.getString("value"));
+				//获取proxyMode属性值
 				ScopedProxyMode proxyMode = attributes.getEnum("proxyMode");
-				if (proxyMode == ScopedProxyMode.DEFAULT) {
+				if (proxyMode == ScopedProxyMode.DEFAULT) { //默认设置为NO
 					proxyMode = this.defaultProxyMode;
 				}
 				metadata.setScopedProxyMode(proxyMode);
 			}
 		}
+		//返回作用域元信息
 		return metadata;
 	}
 

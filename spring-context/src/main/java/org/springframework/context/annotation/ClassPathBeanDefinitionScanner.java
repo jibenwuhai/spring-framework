@@ -158,7 +158,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 */
 	public ClassPathBeanDefinitionScanner(BeanDefinitionRegistry registry, boolean useDefaultFilters,
 			Environment environment, @Nullable ResourceLoader resourceLoader) {
-
+		//为容器设置加载bean定义的注册器
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
 		this.registry = registry;
 
@@ -166,6 +166,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 			registerDefaultFilters();
 		}
 		setEnvironment(environment);
+		//资源加载器
 		setResourceLoader(resourceLoader);
 	}
 
@@ -249,11 +250,12 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @return number of beans registered
 	 */
 	public int scan(String... basePackages) {
+		//已注册的bean个数
 		int beanCountAtScanStart = this.registry.getBeanDefinitionCount();
-
+		//启动扫描
 		doScan(basePackages);
 
-		// Register annotation config processors, if necessary.
+		// Register annotation config processors, if necessary. 注册注释配置处理器，如果需要的话
 		if (this.includeAnnotationConfig) {
 			AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 		}
@@ -273,22 +275,30 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
 		Set<BeanDefinitionHolder> beanDefinitions = new LinkedHashSet<>();
 		for (String basePackage : basePackages) {
+			//扫描给定路径，获取符合条件的bean定义
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
 			for (BeanDefinition candidate : candidates) {
+				//获取bean的作用域
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
 				candidate.setScope(scopeMetadata.getScopeName());
+				//为bean生成名称
 				String beanName = this.beanNameGenerator.generateBeanName(candidate, this.registry);
+				//非spring注解的bean
 				if (candidate instanceof AbstractBeanDefinition) {
 					postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);
 				}
+				//spring注解的的bean
 				if (candidate instanceof AnnotatedBeanDefinition) {
 					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
 				}
+				//检查指定bean是否已经注册过
 				if (checkCandidate(beanName, candidate)) {
 					BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(candidate, beanName);
+					//根据注解中配置的作用域，为bean应用相应的代理模式
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);
+					//向容器注册扫描到的bean
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}

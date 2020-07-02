@@ -238,9 +238,9 @@ public class AnnotatedBeanDefinitionReader {
 	 * class-declared annotations.
 	 * @param beanClass the class of the bean
 	 * @param name an explicit name for the bean
-	 * @param qualifiers specific qualifier annotations to consider, if any,
+	 * @param qualifiers specific qualifier annotations to consider, if any, 限定符
 	 * in addition to qualifiers at the bean class level
-	 * @param supplier a callback for creating an instance of the bean
+	 * @param supplier a callback for creating an instance of the bean 供应商
 	 * (may be {@code null})
 	 * @param customizers one or more callbacks for customizing the factory's
 	 * {@link BeanDefinition}, e.g. setting a lazy-init or primary flag
@@ -249,27 +249,33 @@ public class AnnotatedBeanDefinitionReader {
 	private <T> void doRegisterBean(Class<T> beanClass, @Nullable String name,
 			@Nullable Class<? extends Annotation>[] qualifiers, @Nullable Supplier<T> supplier,
 			@Nullable BeanDefinitionCustomizer[] customizers) {
-
+		//根据指定的注解Bean定义类，创建spring容器中对注解bean的封装的数据结构
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
 
 		abd.setInstanceSupplier(supplier);
+		//解析bean的作用域
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
 		abd.setScope(scopeMetadata.getScopeName());
+		//生成bean的名称
 		String beanName = (name != null ? name : this.beanNameGenerator.generateBeanName(abd, this.registry));
-
+		//处理bean定义中的通用注解
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+		//解析限定符注解
 		if (qualifiers != null) {
 			for (Class<? extends Annotation> qualifier : qualifiers) {
+				//Primary 自动依赖时候首选
 				if (Primary.class == qualifier) {
 					abd.setPrimary(true);
 				}
+				//延迟初始化
 				else if (Lazy.class == qualifier) {
 					abd.setLazyInit(true);
 				}
 				else {
+					//为该bean添加默认autowiring
 					abd.addQualifier(new AutowireCandidateQualifier(qualifier));
 				}
 			}
@@ -279,9 +285,11 @@ public class AnnotatedBeanDefinitionReader {
 				customizer.customize(abd);
 			}
 		}
-
+		//创建一个指定bean名称的bean定义对象，封装注解bean定义类型数据
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
+		//根据作用域，创建不同的代理对象（主要是AOP使用）
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+		//向IOC容器注册注解Bean对象
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
 
