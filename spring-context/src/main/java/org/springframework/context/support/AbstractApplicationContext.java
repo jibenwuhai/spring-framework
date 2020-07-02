@@ -225,6 +225,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 	/**
 	 * Create a new AbstractApplicationContext with no parent.
+	 * 获取一个spring source 的加载器用于读入spring bean配置信息
 	 */
 	public AbstractApplicationContext() {
 		this.resourcePatternResolver = getResourcePatternResolver();
@@ -456,6 +457,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see org.springframework.core.io.support.PathMatchingResourcePatternResolver
 	 */
 	protected ResourcePatternResolver getResourcePatternResolver() {
+		//AbstractApplicationContext 继承DefaultResourceLoader，本身也是资源加载器
 		return new PathMatchingResourcePatternResolver(this);
 	}
 
@@ -516,41 +518,58 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
-			// Prepare this context for refreshing.
+			// Prepare this context for refreshing. 准备这个上下文以进行刷新。
+			//调用容器准备刷新方法，获取容器当前时间，设置同步标志
+			//准备刷新
 			prepareRefresh();
 
-			// Tell the subclass to refresh the internal bean factory.
+			// Tell the subclass to refresh the internal bean factory. 告诉子类刷新内部bean工厂。
+			//告诉子类启动refreshBeanFactory()方法，bean定义资源文件的载入从子类的refreshBeanFactory()方法启动
+			//获取新鲜BeanFactory
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
-			// Prepare the bean factory for use in this context.
+			// Prepare the bean factory for use in this context. 准备在此上下文中使用的bean工厂。
+			// 为beanFactory 配置容器特性，例如类加载器、事件处理器
+			// 准备BeanFactory
 			prepareBeanFactory(beanFactory);
 
 			try {
-				// Allows post-processing of the bean factory in context subclasses.
+				// Allows post-processing of the bean factory in context subclasses. 允许在上下文子类中对bean工厂进行后处理。
+				//为容器的某些子类特定特殊的POst事件处理器
+				//发布过程BeanFactory
 				postProcessBeanFactory(beanFactory);
 
-				// Invoke factory processors registered as beans in the context.
+				// Invoke factory processors registered as beans in the context. 调用上下文中注册为bean的工厂处理器。
+				//调用所以注册beanFactoryPostProcessor的Bean
+				//调用BeanFactory Post处理器
 				invokeBeanFactoryPostProcessors(beanFactory);
 
-				// Register bean processors that intercept bean creation.
+				// Register bean processors that intercept bean creation. 注册拦截bean创建的bean处理器。
+				//BeanPostProcessors是bean后置处理器，用于监听容器触发器的事件
 				registerBeanPostProcessors(beanFactory);
 
-				// Initialize message source for this context.
+				// Initialize message source for this context.为此上下文初始化消息源。
+				//初始化信息源，和国际化相关
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				//初始化容器事件传播器
 				initApplicationEventMulticaster();
 
-				// Initialize other special beans in specific context subclasses.
+				// Initialize other special beans in specific context subclasses. 初始化特定上下文子类中的其他特殊bean。
+				//调用子类的某些特殊bean的初始化方法
 				onRefresh();
 
 				// Check for listener beans and register them.
+				//为事件传播器注册事件监听器
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				//初始化所有剩余的单例bean
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				//初始化容器的生命周期事件监听器，并发布容器的生命周期事件
 				finishRefresh();
 			}
 
@@ -561,9 +580,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				}
 
 				// Destroy already created singletons to avoid dangling resources.
+				//销毁已创建的beans
 				destroyBeans();
 
 				// Reset 'active' flag.
+				//取消刷新操作，重置容器的同步标志
 				cancelRefresh(ex);
 
 				// Propagate exception to caller.
@@ -573,6 +594,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			finally {
 				// Reset common introspection caches in Spring's core, since we
 				// might not ever need metadata for singleton beans anymore...
+				//重设公共缓存
 				resetCommonCaches();
 			}
 		}
@@ -598,6 +620,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment.
+		//初始化上下文环境中的任何占位符属性源。
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable:

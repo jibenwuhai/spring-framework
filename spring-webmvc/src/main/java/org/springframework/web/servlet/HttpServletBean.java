@@ -152,8 +152,11 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 		PropertyValues pvs = new ServletConfigPropertyValues(getServletConfig(), this.requiredProperties);
 		if (!pvs.isEmpty()) {
 			try {
+				//定位资源
 				BeanWrapper bw = PropertyAccessorFactory.forBeanPropertyAccess(this);
+				//加载配置信息
 				ResourceLoader resourceLoader = new ServletContextResourceLoader(getServletContext());
+				//注册自定义编辑器
 				bw.registerCustomEditor(Resource.class, new ResourceEditor(resourceLoader, getEnvironment()));
 				initBeanWrapper(bw);
 				bw.setPropertyValues(pvs, true);
@@ -167,6 +170,7 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 		}
 
 		// Let subclasses do whatever initialization they like.
+		//真正初始化容器的入口
 		initServletBean();
 	}
 
