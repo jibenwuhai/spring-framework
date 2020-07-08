@@ -279,8 +279,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			// Check if bean definition exists in this factory.
 			//对IOC容器中是否存在指定名称的BeanDefinition进行检查。如果找不到委托当前容器的父容器查找
 			BeanFactory parentBeanFactory = getParentBeanFactory();
+			//当容器的父容器存在，且当前容器中不存在指定名称的bean
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
+				//解析指定bean名称的原始容器
 				String nameToLookup = originalBeanName(name);
 				if (parentBeanFactory instanceof AbstractBeanFactory) {
 					return ((AbstractBeanFactory) parentBeanFactory).doGetBean(
@@ -325,7 +327,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 						//把依赖bean注册给当前依赖的bean
 						registerDependentBean(dep, beanName);
 						try {
-							//递归调用getBaen（）方法，获取当前bean依赖bean
+							//递归调用getBean（）方法，获取当前bean依赖bean
 							getBean(dep);
 						}
 						catch (NoSuchBeanDefinitionException ex) {
@@ -1847,6 +1849,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
 		// Don't let calling code try to dereference the factory if the bean isn't a factory.
+		//如果bean不是工厂，不要让调用代码尝试取消对工厂的引用。
 		if (BeanFactoryUtils.isFactoryDereference(name)) {
 			if (beanInstance instanceof NullBean) {
 				return beanInstance;
@@ -1860,9 +1863,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			return beanInstance;
 		}
 
-		// Now we have the bean instance, which may be a normal bean or a FactoryBean.
-		// If it's a FactoryBean, we use it to create a bean instance, unless the
-		// caller actually wants a reference to the factory.
+		// Now we have the bean instance, which may be a normal bean or a FactoryBean. 现在我们有了bean实例，它可以是普通的bean或FactoryBean。
+		// If it's a FactoryBean, we use it to create a bean instance, unless the 如果它是FactoryBean，我们使用它来创建一个bean实例，除非
+		// caller actually wants a reference to the factory. 调用者实际上需要对工厂的引用。
 		if (!(beanInstance instanceof FactoryBean)) {
 			return beanInstance;
 		}
@@ -1872,16 +1875,19 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			mbd.isFactoryBean = true;
 		}
 		else {
+			//从bean工厂缓存中获取指定名称的bean实例对象
 			object = getCachedObjectForFactoryBean(beanName);
 		}
 		if (object == null) {
-			// Return bean instance from factory.
+			// Return bean instance from factory. 从工厂返回bean实例。
 			FactoryBean<?> factory = (FactoryBean<?>) beanInstance;
-			// Caches object obtained from FactoryBean if it is a singleton.
+			// Caches object obtained from FactoryBean if it is a singleton. 如果是单例对象，则缓存从FactoryBean获得的对象。
 			if (mbd == null && containsBeanDefinition(beanName)) {
 				mbd = getMergedLocalBeanDefinition(beanName);
 			}
+			//如果从容器得到了bean定义信息，并且bean定义信息不是虚构的，则让工厂bean产生bean对象
 			boolean synthetic = (mbd != null && mbd.isSynthetic());
+			//实现工厂bean生产bean实例对象过程
 			object = getObjectFromFactoryBean(factory, beanName, !synthetic);
 		}
 		return object;

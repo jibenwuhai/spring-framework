@@ -179,9 +179,11 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
 		Object singletonObject = this.singletonObjects.get(beanName);
+		//为空，且对象 单例对象正在创建中吗
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			synchronized (this.singletonObjects) {
 				singletonObject = this.earlySingletonObjects.get(beanName);
+				//允许早期引用
 				if (singletonObject == null && allowEarlyReference) {
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 					if (singletonFactory != null) {
@@ -401,10 +403,12 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * to be destroyed before the given bean is destroyed.
 	 * @param beanName the name of the bean
 	 * @param dependentBeanName the name of the dependent bean
+	 * 为指定的bean注入依赖的bean
 	 */
 	public void registerDependentBean(String beanName, String dependentBeanName) {
+		//规范名称 别名-》规范Bean名称
 		String canonicalName = canonicalName(beanName);
-
+		//在容器中通过"bean名称-》全部依赖bean名称集合"查找指定名称bean的依赖bean
 		synchronized (this.dependentBeanMap) {
 			Set<String> dependentBeans =
 					this.dependentBeanMap.computeIfAbsent(canonicalName, k -> new LinkedHashSet<>(8));
@@ -412,7 +416,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				return;
 			}
 		}
-
+		//在容器中通过"bean名称-》指定bean依赖bean名称集合"查找指定名称bean的依赖bean
 		synchronized (this.dependenciesForBeanMap) {
 			Set<String> dependenciesForBean =
 					this.dependenciesForBeanMap.computeIfAbsent(dependentBeanName, k -> new LinkedHashSet<>(8));
