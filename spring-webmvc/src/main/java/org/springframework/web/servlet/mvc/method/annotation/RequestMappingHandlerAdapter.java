@@ -831,6 +831,7 @@ public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter
 	 * if view resolution is required.
 	 * @since 4.2
 	 * @see #createInvocableHandlerMethod(HandlerMethod)
+	 * 获取处理请求的方法，执行并返回结果视图
 	 */
 	@Nullable
 	protected ModelAndView invokeHandlerMethod(HttpServletRequest request,
