@@ -110,6 +110,7 @@ public abstract class AbstractDispatcherServletInitializer extends AbstractConte
 	 * Return the name under which the {@link DispatcherServlet} will be registered.
 	 * Defaults to {@link #DEFAULT_SERVLET_NAME}.
 	 * @see #registerDispatcherServlet(ServletContext)
+	 * 服务名称
 	 */
 	protected String getServletName() {
 		return DEFAULT_SERVLET_NAME;
@@ -152,6 +153,7 @@ public abstract class AbstractDispatcherServletInitializer extends AbstractConte
 	 * Specify the servlet mapping(s) for the {@code DispatcherServlet} &mdash;
 	 * for example {@code "/"}, {@code "/app"}, etc.
 	 * @see #registerDispatcherServlet(ServletContext)
+	 * 映射
 	 */
 	protected abstract String[] getServletMappings();
 
@@ -213,6 +215,7 @@ public abstract class AbstractDispatcherServletInitializer extends AbstractConte
 	 * A single place to control the {@code asyncSupported} flag for the
 	 * {@code DispatcherServlet} and all filters added via {@link #getServletFilters()}.
 	 * <p>The default value is "true".
+	 * 异步支持
 	 */
 	protected boolean isAsyncSupported() {
 		return true;

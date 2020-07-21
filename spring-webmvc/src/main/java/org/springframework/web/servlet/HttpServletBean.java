@@ -199,6 +199,7 @@ public abstract class HttpServletBean extends HttpServlet implements Environment
 	 * Overridden method that simply returns {@code null} when no
 	 * ServletConfig set yet.
 	 * @see #getServletConfig()
+	 * DispatchServlet名称
 	 */
 	@Override
 	@Nullable
