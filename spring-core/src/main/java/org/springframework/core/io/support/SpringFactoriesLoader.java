@@ -140,6 +140,7 @@ public final class SpringFactoriesLoader {
 
 		result = new HashMap<>();
 		try {
+			//搜索指定classLoader下所有的META-INFO/spring.factories资源内容
 			Enumeration<URL> urls = classLoader.getResources(FACTORIES_RESOURCE_LOCATION);
 			while (urls.hasMoreElements()) {
 				URL url = urls.nextElement();
@@ -156,7 +157,7 @@ public final class SpringFactoriesLoader {
 				}
 			}
 
-			// Replace all lists with unmodifiable lists containing unique elements
+			// Replace all lists with unmodifiable lists containing unique elements 将所有列表替换为包含唯一元素的不可修改列表
 			result.replaceAll((factoryType, implementations) -> implementations.stream().distinct()
 					.collect(Collectors.collectingAndThen(Collectors.toList(), Collections::unmodifiableList)));
 			cache.put(classLoader, result);

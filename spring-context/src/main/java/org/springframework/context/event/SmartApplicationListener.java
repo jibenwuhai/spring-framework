@@ -41,7 +41,7 @@ public interface SmartApplicationListener extends ApplicationListener<Applicatio
 	 */
 	boolean supportsEventType(Class<? extends ApplicationEvent> eventType);
 
-	/**
+	/**AbstractApplicationCon
 	 * Determine whether this listener actually supports the given source type.
 	 * <p>The default implementation always returns {@code true}.
 	 * @param sourceType the source type, or {@code null} if no source

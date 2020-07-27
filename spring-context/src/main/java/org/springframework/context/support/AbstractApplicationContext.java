@@ -1004,6 +1004,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	@Override
 	public void close() {
 		synchronized (this.startupShutdownMonitor) {
+			//应用上下文关闭
 			doClose();
 			// If we registered a JVM shutdown hook, we don't need it anymore now:
 			// We've already explicitly closed the context.
@@ -1037,7 +1038,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			LiveBeansView.unregisterApplicationContext(this);
 
 			try {
-				// Publish shutdown event.
+				// Publish shutdown event. 发布关闭事件
 				publishEvent(new ContextClosedEvent(this));
 			}
 			catch (Throwable ex) {
@@ -1055,21 +1056,22 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			}
 
 			// Destroy all cached singletons in the context's BeanFactory.
+			//销毁上下文BeanFactory中所有缓存的单例。
 			destroyBeans();
 
-			// Close the state of this context itself.
+			// Close the state of this context itself. 关闭上下文本身的状态。
 			closeBeanFactory();
 
-			// Let subclasses do some final clean-up if they wish...
+			// Let subclasses do some final clean-up if they wish...   如果子类愿意的话，让它们做一些最后的清理……
 			onClose();
 
-			// Reset local application listeners to pre-refresh state.
+			// Reset local application listeners to pre-refresh state.  将本地应用程序监听器重置为预刷新状态。
 			if (this.earlyApplicationListeners != null) {
 				this.applicationListeners.clear();
 				this.applicationListeners.addAll(this.earlyApplicationListeners);
 			}
 
-			// Switch to inactive.
+			// Switch to inactive. 切换到不活跃。
 			this.active.set(false);
 		}
 	}
