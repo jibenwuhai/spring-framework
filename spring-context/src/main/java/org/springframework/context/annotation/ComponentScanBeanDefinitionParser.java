@@ -80,49 +80,53 @@ public class ComponentScanBeanDefinitionParser implements BeanDefinitionParser {
 	@Override
 	@Nullable
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
+		//拿到<context:component-scan>节点的base-package属性值
 		String basePackage = element.getAttribute(BASE_PACKAGE_ATTRIBUTE);
+		//解析占位符, 例如 ${basePackage}
 		basePackage = parserContext.getReaderContext().getEnvironment().resolvePlaceholders(basePackage);
+		//解析base-package（允许通过 ",; \t\n" 中的任一符号填写多个），例如: com.joonwhee.open.one;com.joonwhee.open.two
 		String[] basePackages = StringUtils.tokenizeToStringArray(basePackage,
 				ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS);
 
-		// Actually scan for bean definitions and register them.
-		//实际扫描bean定义并注册它们
+		// Actually scan for bean definitions and register them.实际扫描bean定义并注册它们
+		//构建和配置ClassPathBeanDefinitionScanner
 		ClassPathBeanDefinitionScanner scanner = configureScanner(parserContext, element);
-		Set<BeanDefinitionHolder> beanDefinitions = scanner.doScan(basePackages);
-		registerComponents(parserContext.getReaderContext(), beanDefinitions, element);
+		Set<BeanDefinitionHolder> beanDefinitions = scanner.doScan(basePackages);//使用scanner在指定的basePackages包中执行扫描，返回已注册的bean定义
+		registerComponents(parserContext.getReaderContext(), beanDefinitions, element);//组件注册（包括注册一些内部的注解后置处理器、触发注册事件）
 
 		return null;
 	}
 
 	protected ClassPathBeanDefinitionScanner configureScanner(ParserContext parserContext, Element element) {
-		boolean useDefaultFilters = true;
+		boolean useDefaultFilters = true;//解析use-default-filters属性，默认为true，用于指示是否使用默认的filter
 		if (element.hasAttribute(USE_DEFAULT_FILTERS_ATTRIBUTE)) {
 			useDefaultFilters = Boolean.parseBoolean(element.getAttribute(USE_DEFAULT_FILTERS_ATTRIBUTE));
 		}
 
 		// Delegate bean definition registration to scanner class.
+		//构建ClassPathBeanDefinitionScanner，将bean定义注册委托给scanner类
 		ClassPathBeanDefinitionScanner scanner = createScanner(parserContext.getReaderContext(), useDefaultFilters);
 		scanner.setBeanDefinitionDefaults(parserContext.getDelegate().getBeanDefinitionDefaults());
 		scanner.setAutowireCandidatePatterns(parserContext.getDelegate().getAutowireCandidatePatterns());
-
+		//解析resource-pattern属性
 		if (element.hasAttribute(RESOURCE_PATTERN_ATTRIBUTE)) {
 			scanner.setResourcePattern(element.getAttribute(RESOURCE_PATTERN_ATTRIBUTE));
 		}
 
-		try {
+		try {//解析name-generator属性
 			parseBeanNameGenerator(element, scanner);
 		}
 		catch (Exception ex) {
 			parserContext.getReaderContext().error(ex.getMessage(), parserContext.extractSource(element), ex.getCause());
 		}
 
-		try {
+		try {//解析scope-resolver、scoped-proxy属性
 			parseScope(element, scanner);
 		}
 		catch (Exception ex) {
 			parserContext.getReaderContext().error(ex.getMessage(), parserContext.extractSource(element), ex.getCause());
 		}
-
+		//解析类型过滤器
 		parseTypeFilters(element, scanner, parserContext);
 
 		return scanner;
@@ -137,8 +141,9 @@ public class ComponentScanBeanDefinitionParser implements BeanDefinitionParser {
 			XmlReaderContext readerContext, Set<BeanDefinitionHolder> beanDefinitions, Element element) {
 
 		Object source = readerContext.extractSource(element);
+		//使用注解tagName （例如: context:component-scan）和source 构建CompositeComponentDefinition
 		CompositeComponentDefinition compositeDef = new CompositeComponentDefinition(element.getTagName(), source);
-
+		//将扫描到的所有的BeanDefinition添加到compositeDef 的nestedComponent
 		for (BeanDefinitionHolder beanDefHolder : beanDefinitions) {
 			compositeDef.addNestedComponent(new BeanComponentDefinition(beanDefHolder));
 		}
@@ -146,16 +151,19 @@ public class ComponentScanBeanDefinitionParser implements BeanDefinitionParser {
 		// Register annotation config processors, if necessary.
 		boolean annotationConfig = true;
 		if (element.hasAttribute(ANNOTATION_CONFIG_ATTRIBUTE)) {
+			//获取component-scan标签的annotation-config属性值（默认为true）
 			annotationConfig = Boolean.parseBoolean(element.getAttribute(ANNOTATION_CONFIG_ATTRIBUTE));
 		}
 		if (annotationConfig) {
+			//如果annotation-config属性值为true，在给定的注册表中注册所有用于注解的Bean后置处理器
 			Set<BeanDefinitionHolder> processorDefinitions =
 					AnnotationConfigUtils.registerAnnotationConfigProcessors(readerContext.getRegistry(), source);
 			for (BeanDefinitionHolder processorDefinition : processorDefinitions) {
+				//将注册的注解后置处理器的BeanDefinition添加到compositeDef的nestedComponents属性中
 				compositeDef.addNestedComponent(new BeanComponentDefinition(processorDefinition));
 			}
 		}
-
+		//触发组件注册事件，默认实现为EmptyReaderEventListener（空实现，没有具体操作）
 		readerContext.fireComponentRegistered(compositeDef);
 	}
 
@@ -202,16 +210,22 @@ public class ComponentScanBeanDefinitionParser implements BeanDefinitionParser {
 		// Parse exclude and include filter elements.
 		ClassLoader classLoader = scanner.getResourceLoader().getClassLoader();
 		NodeList nodeList = element.getChildNodes();
+		//解析遍历element下所有的子节点
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node node = nodeList.item(i);
 			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				//拿到节点的localName 例如:：<context:exclude-filter type="" expression=""/>，localName为：exclude-filter
 				String localName = parserContext.getDelegate().getLocalName(node);
 				try {
+					//解析include-filter子节点
 					if (INCLUDE_FILTER_ELEMENT.equals(localName)) {
+						//构建typeFilter
 						TypeFilter typeFilter = createTypeFilter((Element) node, classLoader, parserContext);
 						scanner.addIncludeFilter(typeFilter);
 					}
+					//解析exclude-filter子节点
 					else if (EXCLUDE_FILTER_ELEMENT.equals(localName)) {
+						//构建TypeFilter
 						TypeFilter typeFilter = createTypeFilter((Element) node, classLoader, parserContext);
 						scanner.addExcludeFilter(typeFilter);
 					}
@@ -231,23 +245,29 @@ public class ComponentScanBeanDefinitionParser implements BeanDefinitionParser {
 	@SuppressWarnings("unchecked")
 	protected TypeFilter createTypeFilter(Element element, @Nullable ClassLoader classLoader,
 			ParserContext parserContext) throws ClassNotFoundException {
-
+		//获取type、expression
 		String filterType = element.getAttribute(FILTER_TYPE_ATTRIBUTE);
 		String expression = element.getAttribute(FILTER_EXPRESSION_ATTRIBUTE);
 		expression = parserContext.getReaderContext().getEnvironment().resolvePlaceholders(expression);
+		//根据filterType，返回对应的TypeFilter，例如annotation返回AnnotationTypeFilter
 		if ("annotation".equals(filterType)) {
+			//指定过滤的注解, expression为注解的类全名称, 例如: org.springframework.stereotype.Controller
 			return new AnnotationTypeFilter((Class<Annotation>) ClassUtils.forName(expression, classLoader));
 		}
 		else if ("assignable".equals(filterType)) {
+			//指定过滤的类或接口, 包括子类和子接口, expression为类全名称
 			return new AssignableTypeFilter(ClassUtils.forName(expression, classLoader));
 		}
 		else if ("aspectj".equals(filterType)) {
+			//指定aspectj表达式来过滤类, expression为aspectj表达式字符串
 			return new AspectJTypeFilter(expression, classLoader);
 		}
 		else if ("regex".equals(filterType)) {
+			//通过正则表达式来过滤类, expression为正则表达式字符串
 			return new RegexPatternTypeFilter(Pattern.compile(expression));
 		}
 		else if ("custom".equals(filterType)) {
+			//用户自定义过滤器类型, expression为自定义过滤器的类全名称
 			Class<?> filterClass = ClassUtils.forName(expression, classLoader);
 			if (!TypeFilter.class.isAssignableFrom(filterClass)) {
 				throw new IllegalArgumentException(

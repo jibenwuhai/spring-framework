@@ -163,7 +163,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		this.registry = registry;
 
 		if (useDefaultFilters) {
-			registerDefaultFilters();
+			registerDefaultFilters();//注册默认的filters
 		}
 		setEnvironment(environment);
 		//资源加载器
@@ -298,7 +298,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);
-					//向容器注册扫描到的bean
+					//向容器注册扫描到的bean （注册到beanDefinitionMap、beanDefinitionNames、aliasMap缓存）
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}
@@ -313,8 +313,10 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @param beanName the generated bean name for the given bean
 	 */
 	protected void postProcessBeanDefinition(AbstractBeanDefinition beanDefinition, String beanName) {
+		//给beanDefinition设置默认值
 		beanDefinition.applyDefaults(this.beanDefinitionDefaults);
 		if (this.autowireCandidatePatterns != null) {
+			//设置此bean是否可以自动装配到其他bean中, 默认为true
 			beanDefinition.setAutowireCandidate(PatternMatchUtils.simpleMatch(this.autowireCandidatePatterns, beanName));
 		}
 	}
@@ -327,6 +329,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @param registry the BeanDefinitionRegistry to register the bean with
 	 */
 	protected void registerBeanDefinition(BeanDefinitionHolder definitionHolder, BeanDefinitionRegistry registry) {
+		//完成beanDefinition注册
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, registry);
 	}
 
@@ -343,15 +346,15 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * bean definition has been found for the specified name
 	 */
 	protected boolean checkCandidate(String beanName, BeanDefinition beanDefinition) throws IllegalStateException {
-		if (!this.registry.containsBeanDefinition(beanName)) {
+		if (!this.registry.containsBeanDefinition(beanName)) {//如果该注册表（beanDefinitionMap缓存）没有包含beanName, 则返回true，代表可以注册该bean定义
 			return true;
 		}
-		BeanDefinition existingDef = this.registry.getBeanDefinition(beanName);
-		BeanDefinition originatingDef = existingDef.getOriginatingBeanDefinition();
+		BeanDefinition existingDef = this.registry.getBeanDefinition(beanName);//拿到注册表中该beanName的BeanDefinition
+		BeanDefinition originatingDef = existingDef.getOriginatingBeanDefinition();//拿到原始BeanDefinition(使用了代理的BeanDefinition会有原始BeanDefinition)
 		if (originatingDef != null) {
-			existingDef = originatingDef;
+			existingDef = originatingDef;//如果有原始BeanDefinition, 则使用原始BeanDefinition
 		}
-		if (isCompatible(beanDefinition, existingDef)) {
+		if (isCompatible(beanDefinition, existingDef)) {//检查新BeanDefinition是否与原BeanDefinition兼容，如果兼容则返回false，跳过注册
 			return false;
 		}
 		throw new ConflictingBeanDefinitionException("Annotation-specified bean name '" + beanName +

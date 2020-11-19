@@ -94,6 +94,8 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
 		//获得xml通配符
 		this.readerContext = readerContext;
+		//getDocumentElement:拿到文档的子节点，对spring来说理论上应该都是<bean>
+		//doRegisterBeanDefinitions：注册beanDefinition
 		doRegisterBeanDefinitions(doc.getDocumentElement());
 	}
 
@@ -128,11 +130,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		// this behavior emulates a stack of delegates without actually necessitating one.
 		//具体解析过程由BeanDefinitionParserDelegate实现，其中定义了spring bean定义xml文件的各种元素
 		BeanDefinitionParserDelegate parent = this.delegate;
-		this.delegate = createDelegate(getReaderContext(), root, parent);
-
+		this.delegate = createDelegate(getReaderContext(), root, parent);//构建BeanDefinitionParserDelegate
+		//校验root节点的命名空间是否为默认的命名空间（默认命名空间http://www.springframework.org/schema/beans）
 		if (this.delegate.isDefaultNamespace(root)) {
 			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
-			if (StringUtils.hasText(profileSpec)) {
+			if (StringUtils.hasText(profileSpec)) {//处理profile属性 dev/test/pro
 				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
 						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
 				// We cannot use Profiles.of(...) since profile expressions are not supported
@@ -182,11 +184,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 					Element ele = (Element) node;
 					//bean定义的文档的元素节点使用了spring默认的xml命名空间
 					if (delegate.isDefaultNamespace(ele)) {
-						//使用spring的Bean规则解析元素节点
+						//使用spring的Bean规则解析元素节点 例:<bean id="test" class="">
 						parseDefaultElement(ele, delegate);
 					}
 					else {
-						//自定义解析规则解析元素节点
+						//自定义解析规则解析元素节点,例如：<context:component-scan/>、<aop:aspectj-autoproxy/>
 						delegate.parseCustomElement(ele);
 					}
 				}
@@ -332,11 +334,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * and registering it with the registry.
 	 */
 	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
-		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
+		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);//进行节点定义解析，解析后bdHolder会包含一个节点所有的属性，例如name。class、id
 		//BeanDefinitionHolder 是对BeanDefinition的封装
 		//BeanDefinitionParserDelegate来实现对bean元素的解析
 		if (bdHolder != null) {
-			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);//存在自定义属性的话，另外解析
 			try {
 				// Register the final decorated instance.
 				// 向spring ioc容器注册解析得到bean定义。这是bean定义向ioc容器注册的入口

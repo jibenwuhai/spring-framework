@@ -900,9 +900,11 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		// Iterate over a copy to allow for init methods which in turn register new bean definitions.
 		// While this may not be part of the regular factory bootstrap, it does otherwise work fine.
+		//创建beanDefinitionNames的副本beanNames用于后续的遍历，以允许init等方法注册新的bean定义
 		List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);
 
 		// Trigger initialization of all non-lazy singleton beans...
+		//遍历beanNames，触发所有非懒加载单例bean的初始化
 		for (String beanName : beanNames) {
 			//获取指定名称的Bean定义
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
@@ -932,16 +934,21 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 					}
 				}
 				else {
+					//如果beanName对应的bean不是FactoryBean，只是普通Bean，通过beanName获取bean实例
 					getBean(beanName);
 				}
 			}
 		}
 
 		// Trigger post-initialization callback for all applicable beans...
+		//遍历beanNames，触发所有SmartInitializingSingleton的后初始化回调
 		for (String beanName : beanNames) {
+			//拿到beanName对应的实例
 			Object singletonInstance = getSingleton(beanName);
+			//实现SmartInitializingSingleton 接口
 			if (singletonInstance instanceof SmartInitializingSingleton) {
 				SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;
+				//触发SmartInitializingSingleton实现类的afterSingletonsInstantiated方法
 				if (System.getSecurityManager() != null) {
 					AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
 						smartSingleton.afterSingletonsInstantiated();
@@ -977,7 +984,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 						"Validation of bean definition failed", ex);
 			}
 		}
-
+		//根据BeanName重beanDefinitionMap中获取
 		BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
 		if (existingDefinition != null) {
 			//允许Bean定义重写吗
@@ -1006,22 +1013,24 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							"] with [" + beanDefinition + "]");
 				}
 			}
+			//将本次传进来的beanName 和 BeanDefinition映射放入beanDefinitionMap缓存（以供后续创建bean时使用）
 			this.beanDefinitionMap.put(beanName, beanDefinition);
 		}
 		else {
 			if (hasBeanCreationStarted()) {
 				// Cannot modify startup-time collection elements anymore (for stable iteration) 不能再修改启动时收集元素(对于稳定的迭代)
 				synchronized (this.beanDefinitionMap) {
-					this.beanDefinitionMap.put(beanName, beanDefinition);
+					this.beanDefinitionMap.put(beanName, beanDefinition);//beanDefinitionMap缓存
+					//beanName加入 beanDefinitionNames缓存
 					List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
 					updatedDefinitions.addAll(this.beanDefinitionNames);
 					updatedDefinitions.add(beanName);
 					this.beanDefinitionNames = updatedDefinitions;
-					removeManualSingletonName(beanName);
+					removeManualSingletonName(beanName);//将beanName从manualSingletonNames缓存移除
 				}
 			}
 			else {
-				// Still in startup registration phase
+				// Still in startup registration phase 仍在启动注册阶段
 				this.beanDefinitionMap.put(beanName, beanDefinition);
 				this.beanDefinitionNames.add(beanName);
 				removeManualSingletonName(beanName);
@@ -1080,19 +1089,19 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	 */
 	protected void resetBeanDefinition(String beanName) {
 		// Remove the merged bean definition for the given bean, if already created.
-		clearMergedBeanDefinition(beanName);
+		clearMergedBeanDefinition(beanName);//删除beanName的mergedBeanDefinitions缓存（如果有的话）
 
 		// Remove corresponding bean from singleton cache, if any. Shouldn't usually
 		// be necessary, rather just meant for overriding a context's default beans
 		// (e.g. the default StaticMessageSource in a StaticApplicationContext).
-		destroySingleton(beanName);
+		destroySingleton(beanName);//从单例缓存中删除该beanName对应的bean（如果有的话）
 
 		// Notify all post-processors that the specified bean definition has been reset.
 		for (MergedBeanDefinitionPostProcessor processor : getBeanPostProcessorCache().mergedDefinition) {
 			processor.resetBeanDefinition(beanName);
 		}
 
-		// Reset all bean definitions that have the given bean as parent (recursively).
+		// Reset all bean definitions that have the given bean as parent (recursively). 重置beanName的所有子Bean定义（递归）
 		for (String bdName : this.beanDefinitionNames) {
 			if (!beanName.equals(bdName)) {
 				BeanDefinition bd = this.beanDefinitionMap.get(bdName);

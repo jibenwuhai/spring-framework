@@ -425,10 +425,11 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			//将来 “.” 替换成 "/"
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
-			//得到类资源集合
+			//得到类资源集合（本项目依赖的jar，如果路径也符合，则会一起扫描进来）
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
+			//遍历所有的匹配资源
 			for (Resource resource : resources) {
 				if (traceEnabled) {
 					logger.trace("Scanning " + resource);
@@ -437,13 +438,16 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 					try {
 						//获取资源的MetadataReader对象（包含了类和注解的元信息读取方法）
 						MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(resource);
+						//使用过滤器检查给定的类是否为候选类（候选类: 与excludeFilters的所有Filter不匹配，并且与includeFilters的至少一个Filter匹配）
 						if (isCandidateComponent(metadataReader)) {
 							ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);
 							sbd.setSource(resource);
+							//判断sbd是否为候选类(独立的 && (具体的实现类 || (抽象类 && 类中有方法使用@Lookup注解)))
 							if (isCandidateComponent(sbd)) {
 								if (debugEnabled) {
 									logger.debug("Identified candidate component class: " + resource);
 								}
+								//确定是候选类，则添加到candidates
 								candidates.add(sbd);
 							}
 							else {
@@ -499,12 +503,15 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 		//排除 false
 		for (TypeFilter tf : this.excludeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
+				//如果metadataReader与excludeFilters中的任意一个匹配，则返回false，表示metadataReader对应的类不是候选者类
 				return false;
 			}
 		}
-		//命中 true
+		//命中 true  includeFilters默认包含: org.springframework.stereotype.Component注解、javax.annotation.ManagedBean注解
 		for (TypeFilter tf : this.includeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
+				// 如果metadataReader与includeFilters中的任意一个TypeFilter匹配（如果tf为Component注解：metadataReader对应的类使用了Component则匹配），
+				// 则判断@Conditional注解是否匹配；如果匹配，则返回true，表示metadataReader对应的类为候选者类
 				return isConditionMatch(metadataReader);
 			}
 		}

@@ -151,21 +151,25 @@ public abstract class AnnotationConfigUtils {
 		DefaultListableBeanFactory beanFactory = unwrapDefaultListableBeanFactory(registry);
 		if (beanFactory != null) {
 			if (!(beanFactory.getDependencyComparator() instanceof AnnotationAwareOrderComparator)) {
+				//设置dependencyComparator属性
 				beanFactory.setDependencyComparator(AnnotationAwareOrderComparator.INSTANCE);
 			}
 			if (!(beanFactory.getAutowireCandidateResolver() instanceof ContextAnnotationAutowireCandidateResolver)) {
+				//设置autowireCandidateResolver属性（设置自动注入候选对象的解析器，用于判断BeanDefinition是否为候选对象）
 				beanFactory.setAutowireCandidateResolver(new ContextAnnotationAutowireCandidateResolver());
 			}
 		}
 
 		Set<BeanDefinitionHolder> beanDefs = new LinkedHashSet<>(8);
 
+		//注册内部管理的用于处理@Configuration注解的后置处理器的bean
 		if (!registry.containsBeanDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(ConfigurationClassPostProcessor.class);
 			def.setSource(source);
+			//registerPostProcessor: 注册BeanDefinition到注册表中
 			beanDefs.add(registerPostProcessor(registry, def, CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME));
 		}
-
+		//注册内部管理的用于处理@Autowired、@Value、@Inject以及@Lookup注解的后置处理器的bean
 		if (!registry.containsBeanDefinition(AUTOWIRED_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(AutowiredAnnotationBeanPostProcessor.class);
 			def.setSource(source);
@@ -173,6 +177,7 @@ public abstract class AnnotationConfigUtils {
 		}
 
 		// Check for JSR-250 support, and if present add the CommonAnnotationBeanPostProcessor.
+		//注册内部管理的用于处理JSR-250注解（例如@Resource, @PostConstruct, @PreDestroy）的后置处理器的bean
 		if (jsr250Present && !registry.containsBeanDefinition(COMMON_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(CommonAnnotationBeanPostProcessor.class);
 			def.setSource(source);
@@ -180,6 +185,7 @@ public abstract class AnnotationConfigUtils {
 		}
 
 		// Check for JPA support, and if present add the PersistenceAnnotationBeanPostProcessor.
+		// 注册内部管理的用于处理JPA注解的后置处理器的bean
 		if (jpaPresent && !registry.containsBeanDefinition(PERSISTENCE_ANNOTATION_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition();
 			try {
@@ -193,13 +199,13 @@ public abstract class AnnotationConfigUtils {
 			def.setSource(source);
 			beanDefs.add(registerPostProcessor(registry, def, PERSISTENCE_ANNOTATION_PROCESSOR_BEAN_NAME));
 		}
-
+		//注册内部管理的用于处理@EventListener注解的后置处理器的bean
 		if (!registry.containsBeanDefinition(EVENT_LISTENER_PROCESSOR_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(EventListenerMethodProcessor.class);
 			def.setSource(source);
 			beanDefs.add(registerPostProcessor(registry, def, EVENT_LISTENER_PROCESSOR_BEAN_NAME));
 		}
-
+		//注册内部管理用于生产ApplicationListener对象的EventListenerFactory对象
 		if (!registry.containsBeanDefinition(EVENT_LISTENER_FACTORY_BEAN_NAME)) {
 			RootBeanDefinition def = new RootBeanDefinition(DefaultEventListenerFactory.class);
 			def.setSource(source);
@@ -211,9 +217,11 @@ public abstract class AnnotationConfigUtils {
 
 	private static BeanDefinitionHolder registerPostProcessor(
 			BeanDefinitionRegistry registry, RootBeanDefinition definition, String beanName) {
-
+		//设置 role
 		definition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+		//注册beanDefinition
 		registry.registerBeanDefinition(beanName, definition);
+		//封装并返回BeanDefinitionHolder
 		return new BeanDefinitionHolder(definition, beanName);
 	}
 
@@ -256,11 +264,12 @@ public abstract class AnnotationConfigUtils {
 		if (dependsOn != null) {
 			abd.setDependsOn(dependsOn.getStringArray("value"));
 		}
-
+		//@Role注解
 		AnnotationAttributes role = attributesFor(metadata, Role.class);
 		if (role != null) {
 			abd.setRole(role.getNumber("value").intValue());
 		}
+		//@Description注解
 		AnnotationAttributes description = attributesFor(metadata, Description.class);
 		if (description != null) {
 			abd.setDescription(description.getString("value"));
@@ -271,10 +280,10 @@ public abstract class AnnotationConfigUtils {
 			ScopeMetadata metadata, BeanDefinitionHolder definition, BeanDefinitionRegistry registry) {
 		//获取注解bean定义类中的@Scope 注解的proxyMode属性值
 		ScopedProxyMode scopedProxyMode = metadata.getScopedProxyMode();
-		if (scopedProxyMode.equals(ScopedProxyMode.NO)) {
+		if (scopedProxyMode.equals(ScopedProxyMode.NO)) {//如果不需要代理，直接返回Bean的定义
 			return definition;
 		}
-		//TARGET_CLASS =true  INTERFACES=false
+		//TARGET_CLASS =true  INTERFACES=false  判断是使用基于类的代理还是基于接口的代码, 基于类: 使用CGLIB代理, 基于接口: 使用JDK动态代理
 		boolean proxyTargetClass = scopedProxyMode.equals(ScopedProxyMode.TARGET_CLASS);
 		//创建相对应的代理对象
 		return ScopedProxyCreator.createScopedProxy(definition, registry, proxyTargetClass);

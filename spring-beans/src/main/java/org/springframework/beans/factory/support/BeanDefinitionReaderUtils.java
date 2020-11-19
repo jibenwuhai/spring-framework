@@ -162,7 +162,7 @@ public abstract class BeanDefinitionReaderUtils {
 		// Register bean definition under primary name.
 		// 获取解析的beanDefinition的名称
 		String beanName = definitionHolder.getBeanName();
-		//向spring ioc容器注册beanDefinition
+		//向spring ioc容器注册beanName beanDefinition
 		registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
 
 		// Register aliases for bean name, if any.
@@ -170,7 +170,7 @@ public abstract class BeanDefinitionReaderUtils {
 		String[] aliases = definitionHolder.getAliases();
 		if (aliases != null) {
 			for (String alias : aliases) {
-				registry.registerAlias(beanName, alias);
+				registry.registerAlias(beanName, alias);//注册bean的别名 （aliasMap）
 			}
 		}
 	}
